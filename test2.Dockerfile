@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements2.txt
 
 COPY ./app /app
 
-#RUN python app/main.py
+RUN python app/main.py
 
 EXPOSE 8000
 
