@@ -29,8 +29,9 @@ class Data(BaseModel):
     def set_ts_now(cls, v):
         return v or datetime.now()
 
-xgb_open = open("app/models/XGBoost_model_001.joblib.dat","rb")
-xgb_model = joblib.load(xgb_open)
+#Need to redo with xgboost save... version control issues accross OSs  
+#xgb_open = open("app/models/XGBoost_model_001.joblib.dat","rb")
+#xgb_model = joblib.load(xgb_open)
 
 
 @app.get("/")
@@ -128,18 +129,22 @@ async def predict4(data:List[Data]):
     response_json= json.loads(response_json)
     #json.dumps(response_json,indent=4)
     response_body= df.info()
-    xgb_preds = xgb_model.predict_proba(df.drop(['order_time','Year'],axis=1))
-    argmax = xgb_preds.argmax(axis=1)
-    predict=argmax#.numpy()
-    response_body=predict
-    lists = predict.tolist()
-    json_str = json.dumps(lists)
+    
+    #XGBoost predictions
+    #xgb_preds = xgb_model.predict_proba(df.drop(['order_time','Year'],axis=1))
+    #argmax = xgb_preds.argmax(axis=1)
+    #predict=argmax#.numpy()
+    #response_body=predict
+    #lists = predict.tolist()
+    #json_str = json.dumps(lists)
+    
+    
     #nn_preds = learn.get_preds()[0]
-    #
+    
     print (xgb_preds)
     print(predict)
 
-    return json_str
+    return response_json
 
 
 #if __name__ == "__main__":
