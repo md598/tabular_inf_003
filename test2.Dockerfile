@@ -23,4 +23,4 @@ RUN python app/main.py
 
 EXPOSE 8000
 
-#CMD ["python", "app/main.py", "serve"]
+#CMD ["python", "app/main.py", "main"]
