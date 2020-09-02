@@ -6,7 +6,8 @@ LABEL maintainer="Sebastian Ramirez <tiangolo@gmail.com>"
 
 RUN apt-get update && apt-get install -y git python3-dev gcc \
     && rm -rf /var/lib/apt/lists/*
-
+    
+RUN pip install numpy scipy #new
 RUN pip install --upgrade pip
 
 COPY requirements1.txt ./
