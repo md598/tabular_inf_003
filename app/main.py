@@ -16,6 +16,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import xgboost as xgb
+print(xgb.__version__)
 
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
 #path = Path(__file__).parent
@@ -144,7 +145,8 @@ async def predict4(data:List[Data]):
     
     #print (xgb_preds)
     #print(predict)
-
+    print("XGB Version:")
+    print(xgb.__version__)
     return response_json
 
 
