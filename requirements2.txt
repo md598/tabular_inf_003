@@ -4,4 +4,4 @@ spacy
 scikit-learn
 matplotlib
 joblib
-xgboost==0.9
+xgboost==0.90
