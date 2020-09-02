@@ -13,7 +13,7 @@ from pydantic import BaseModel,StrictFloat, validator, ValidationError
 from datetime import date, datetime, time, timedelta, tzinfo
 import sys
 import pandas as pd
-import numpy as np
+#import numpy as np
 import joblib
 
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
