@@ -141,8 +141,8 @@ async def predict4(data:List[Data]):
     
     #nn_preds = learn.get_preds()[0]
     
-    print (xgb_preds)
-    print(predict)
+    #print (xgb_preds)
+    #print(predict)
 
     return response_json
 
