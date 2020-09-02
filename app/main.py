@@ -32,8 +32,8 @@ class Data(BaseModel):
         return v or datetime.now()
 
 #Need to redo with xgboost save... version control issues accross OSs  
-#xgb_open = open("app/models/XGBoost_model_001.joblib.dat","rb")
-#xgb_model = joblib.load(xgb_open)
+xgb_open = open("app/models/XGBoost_model_001.joblib.dat","rb")
+xgb_model = joblib.load(xgb_open)
 
 
 @app.get("/")
