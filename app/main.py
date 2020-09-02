@@ -29,7 +29,7 @@ class Data(BaseModel):
     def set_ts_now(cls, v):
         return v or datetime.now()
 
-xgb_open = open("XGBoost_model_001.joblib.dat","rb")
+xgb_open = open("models/XGBoost_model_001.joblib.dat","rb")
 xgb_model = joblib.load(xgb_open)
 
 
