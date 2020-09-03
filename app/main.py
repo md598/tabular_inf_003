@@ -133,21 +133,22 @@ async def predict4(data:List[Data]):
     response_body= df.info()
     
     #XGBoost predictions
-    #xgb_preds = xgb_model.predict_proba(df.drop(['order_time','Year'],axis=1))
-    #argmax = xgb_preds.argmax(axis=1)
-    #predict=argmax#.numpy()
-    #response_body=predict
-    #lists = predict.tolist()
-    #json_str = json.dumps(lists)
+    xgb_preds = xgb_model.predict_proba(df.drop(['order_time','Year'],axis=1))
+    argmax = xgb_preds.argmax(axis=1)
+    predict=argmax#.numpy()
+    response_body=predict
+    lists = predict.tolist()
+    json_str = json.dumps(lists)
     
     
     #nn_preds = learn.get_preds()[0]
     
-    #print (xgb_preds)
-    #print(predict)
+    print (xgb_preds)
+    print(predict)
     print("XGB Version:")
     print(xgb.__version__)
-    return response_json
+    return json_str
+    #return response_json
 
 
 #if __name__ == "__main__":
