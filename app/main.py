@@ -16,12 +16,23 @@ import pandas as pd
 import numpy as np
 import joblib
 import xgboost as xgb
+from fastai.tabular.all import *
 print(xgb.__version__)
 
+# Run this in console:
+# uvicorn example:app --reload --port 5000
+
+#https://drive.google.com/uc?export=download&id=DRIVE_FILE_ID
+# 9 Feature NN Model from 9_11_2020
+#https://drive.google.com/file/d/1l66IevjsxMf3ONlgcxZJBTe9Rd6DPGm5/view?usp=sharing
+classes = ['0','1','2','3','4','5','6','7','8','9','10','11']
+path = Path(__file__).parent
+export_file_url = '1l66IevjsxMf3ONlgcxZJBTe9Rd6DPGm5'
+export_file_name = 'export.pkl'
 
 tags_metadata = [
     {
-        "name":"predict_xg",
+        "name":"predict_nn",
         "description":"Predicted days until carrier possession. Will return 0 for same day, 1 for next day, 2 for two day, etc.",
     },
 
@@ -33,10 +44,23 @@ app = FastAPI(openapi_tags=tags_metadata)
 @app.on_event("startup")
 def startup_event():
     #Need to redo with xgboost save... version control issues accross OSs
-    xgb_open = open("app/models/XGBoost_model_001.joblib.dat","rb") #docker version
-    #xgb_open = open("models/XGBoost_model_001.joblib.dat","rb") #local uvicorn
+    xgb_open = open("app/models/xgb_model_9_11_2020__9_features.joblib.dat","rb") #docker version
+    #xgb_open = open("models/xgb_model_9_11_2020__9_features.joblib.dat","rb") #local uvicorn
     global xgb_model
     xgb_model = joblib.load(xgb_open)
+    gdd.download_file_from_google_drive(file_id=export_file_url, dest_path=path/export_file_name, unzip=True)
+    try:
+        learn = torch.load(path/export_file_name, map_location=torch.device('cpu'))
+        learn.dls.device = 'cpu'
+        learn.to_fp32()
+    except RuntimeError as e:
+        if len(e.args) > 0 and 'CPU-only machine' in e.args[0]:
+            print(e)
+            message = "\n\nThis model was trained with an old version of fastai and will not work in a CPU environment.\n\nPlease update the fastai library in your training environment and export your model again.\n\nSee instructions for 'Returning to work' at https://course.fast.ai."
+            raise RuntimeError(message)
+        else:
+            raise
+
 
 #Will enforce the correct data types getting to the model
 class Order(BaseModel):
@@ -79,7 +103,7 @@ def add_dateparts(df):
     df['Elapsed']=df['order_time'].astype(np.int64) // 10 ** 9
 
 
-@app.post("/predict_xg/", tags=["predict_xg"])
+@app.post("/predict_nn/", tags=["predict_nn"])
 async def Predict_Days_To_Possession(data:List[Order]):
     rows_list=[]
     for item in data:
@@ -110,7 +134,6 @@ async def Predict_Days_To_Possession(data:List[Order]):
     lists = predict.tolist()
     json_str = json.dumps(lists)
 
-
     #nn_preds = learn.get_preds()[0]
 
     print (xgb_preds)
@@ -119,7 +142,6 @@ async def Predict_Days_To_Possession(data:List[Order]):
     print(xgb.__version__)
     return json_str
     #return response_json
-
 
 #if __name__ == "__main__":
 #    uvicorn.run(app, host="0.0.0.0", port=8000)
