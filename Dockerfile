@@ -16,6 +16,8 @@ RUN pip install --upgrade --no-cache-dir -r requirements1.txt
 COPY requirements2.txt ./
 RUN pip install --no-cache-dir -r requirements2.txt
 
+RUN pip install --upgrade fastai
+
 #COPY app app/
 COPY . . 
 
