@@ -1,11 +1,12 @@
 from fastapi import FastAPI, File, Form, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+#import nest_asyncio #Colab
+#from pyngrok import ngrok #Colab
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 
 import uvicorn
 import asyncio
-import aiohttp
-import aiofiles
+#import time
 import json
 
 from typing import List
@@ -18,40 +19,64 @@ import joblib
 import xgboost as xgb
 from fastai.tabular.all import *
 from google_drive_downloader import GoogleDriveDownloader as gdd
-print(xgb.__version__)
 
 # Run this in console:
-# uvicorn example:app --reload --port 5000
+# uvicorn main:app --reload --port 5000
 
 #https://drive.google.com/uc?export=download&id=DRIVE_FILE_ID
 # 9 Feature NN Model from 9_11_2020
 #https://drive.google.com/file/d/1l66IevjsxMf3ONlgcxZJBTe9Rd6DPGm5/view?usp=sharing
-classes = ['0','1','2','3','4','5','6','7','8','9','10','11']
-path = Path(__file__).parent
-export_file_url = '1l66IevjsxMf3ONlgcxZJBTe9Rd6DPGm5'
-export_file_name = 'export.pkl'
 
+#classes = ['0','1','2','3','4','5','6','7','8','9','10','11'] # NN only
+path = Path(__file__).parent
+#path = !pwd # Colab
+print("Current path: "),print(path[0])
+export_file_url_NN = '1l66IevjsxMf3ONlgcxZJBTe9Rd6DPGm5'
+export_file_url_xGB = '1-5nhr65OEL5dpqa-PQxuMFKOKxzQGcLf'
+export_file_name_NN = 'export_NN.pkl'
+export_file_name_XGB = 'export_XGB.pkl'
+nn_path = str(path[0]) + '/' + export_file_name_NN
+XGB_path = str(path[0]) + '/' + export_file_name_XGB
+print("XGB Version: "), print(xgb.__version__)
+print("FastAI Version: "), print("2.0.12") #Sept 16th 2020
+
+# Use this to not ensemble, but only use the NN
+nn_only = False
+
+
+# Json description for the docs page, we can attach it to a specific method
 tags_metadata = [
     {
-        "name":"predict_nn",
+        "name":"predict",
         "description":"Predicted days until carrier possession. Will return 0 for same day, 1 for next day, 2 for two day, etc.",
     },
-
 ]
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
-#path = Path(__file__).parent
+#path = Path(__file__).parent 
 app = FastAPI(openapi_tags=tags_metadata)
+
+#this is for things to work on Colab
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 
 @app.on_event("startup")
 def startup_event():
-    #Need to redo with xgboost save... version control issues accross OSs
-    xgb_open = open("app/models/xgb_model_9_11_2020__9_features.joblib.dat","rb") #docker version
-    #xgb_open = open("models/xgb_model_9_11_2020__9_features.joblib.dat","rb") #local uvicorn
+    # Load in XGBoost
+    gdd.download_file_from_google_drive(file_id=export_file_url_xGB, dest_path=XGB_path, unzip=True)
+    xgb_open = open(XGB_path,"rb")
     global xgb_model
     xgb_model = joblib.load(xgb_open)
-    gdd.download_file_from_google_drive(file_id=export_file_url, dest_path=path/export_file_name, unzip=True)
+
+    # Load in the NN
+    gdd.download_file_from_google_drive(file_id=export_file_url_NN, dest_path=nn_path, unzip=True)
     try:
-        learn = torch.load(path/export_file_name, map_location=torch.device('cpu'))
+        global learn
+        learn = torch.load(nn_path, map_location=torch.device('cpu'))
         learn.dls.device = 'cpu'
         learn.to_fp32()
     except RuntimeError as e:
@@ -76,6 +101,7 @@ class Order(BaseModel):
     ' then provide 43.5 hours. Use leading 0 if <1 )i.e. 0.5)',
     example='8.25')
 
+# Need to test/improve the validator
     @validator('input_order_time', pre=True, always=True)
     def set_ts_now(cls, v):
         return v or datetime.now()
@@ -87,12 +113,11 @@ def read_root():
     return {"message": message}
 
 
-
 def add_dateparts(df):
     try:
         df['order_time'] = pd.to_datetime(df['order_time'])
     except ValidationError as e:
-        print(e)
+        raise print(e)
 
     df['Year']=df['order_time'].dt.year
     df['Month']=df['order_time'].dt.month
@@ -104,7 +129,7 @@ def add_dateparts(df):
     df['Elapsed']=df['order_time'].astype(np.int64) // 10 ** 9
 
 
-@app.post("/predict_nn/", tags=["predict_nn"])
+@app.post("/predict/", tags=["predict"])
 async def Predict_Days_To_Possession(data:List[Order]):
     rows_list=[]
     for item in data:
@@ -114,35 +139,51 @@ async def Predict_Days_To_Possession(data:List[Order]):
             is_before_3pm = True
         else:
             is_before_3pm = False
-        rows_list.append({'order_time':order_time,'time_to_next_truck_bis_hours':truck_hours,'is_before_3pm':is_before_3pm})
+        rows_list.append({'order_time':order_time,'hours_to_next_truck':truck_hours,'is_before_3pm':is_before_3pm})
     df=pd.DataFrame(rows_list)
     add_dateparts(df)
 
     df.head()
-    df=df[['order_time','Year','Day', 'Dayofweek', 'Dayofyear', 'Month', 'Week', 'Hour', 'is_before_3pm', 'time_to_next_truck_bis_hours', 'Elapsed']]
+    df=df[['order_time','Year','Day', 'Dayofweek', 'Dayofyear', 'Month', 'Week', 'Hour', 'is_before_3pm', 'hours_to_next_truck', 'Elapsed']]
     df.to_csv('results.csv',index=False)
-    df['order_time']=df['order_time'].dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-    response_json= df[['order_time','time_to_next_truck_bis_hours']].to_json(orient="records",date_format='iso')
+    df['order_time']=df['order_time'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+
+    # Simply resond with the inputs to test IO
+    #response_json_io= df[['order_time','hours_to_next_truck']].to_json(orient="records",date_format='iso')
+    #response_json_io= json.loads(response_json)
+    print("Number of inputs:"+ str(len(df.index)))
+
+    # NN Dataloader & batch
+    dl = learn.dls.test_dl(df)#,bs=4, val_bs=4)
+   
+    # NN prediction
+    inputs, nn_probs, _, nn_preds = learn.get_preds(dl=dl,with_input=True,with_decoded=True)
+    print("nn Preds:")
+    print(nn_preds)
+    #response_json_nn = json.dumps(nn_preds.tolist()) # nn predictions only
+
+    # XGBoost predictions
+    xgb_probs = xgb_model.predict_proba(np.hstack((inputs[0].numpy(),inputs[1].numpy()))) #faster than making a new df
+    xgb_preds = xgb_probs.argmax(axis=1)
+    print("xgb_preds:")
+    print(xgb_preds)
+    #response_json_xgb = json.dumps(xgb_preds.tolist()) # xgb predictions only
+
+    # Ensemble results
+    avg = (nn_probs + xgb_probs) / 2
+    ensemble_preds =avg.argmax(axis=1)
+    print("Ensemble preds:")
+    print(ensemble_preds)
+
+    # Format final output
+    df['predicted_days_to_posssession'] = ensemble_preds.tolist() #can change to preds from one model only if needed
+    print("DF with preds")
+    print(df)
+    response_json= df[['order_time','hours_to_next_truck','predicted_days_to_posssession']].to_json(orient="records",date_format='iso')
     response_json= json.loads(response_json)
-    #json.dumps(response_json,indent=4)
-    response_body= df.info()
 
-    #XGBoost predictions
-    xgb_preds = xgb_model.predict_proba(df.drop(['order_time','Year'],axis=1))
-    argmax = xgb_preds.argmax(axis=1)
-    predict=argmax#.numpy()
-    response_body=predict
-    lists = predict.tolist()
-    json_str = json.dumps(lists)
-
-    #nn_preds = learn.get_preds()[0]
-
-    print (xgb_preds)
-    print(predict)
-    print("XGB Version:")
-    print(xgb.__version__)
-    return json_str
-    #return response_json
+    #return response_json_io # Test IO by replying with input data
+    return response_json
 
 #if __name__ == "__main__":
 #    uvicorn.run(app, host="0.0.0.0", port=8000)
