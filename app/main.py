@@ -35,8 +35,9 @@ export_file_url_NN = '1l66IevjsxMf3ONlgcxZJBTe9Rd6DPGm5'
 export_file_url_xGB = '1-5nhr65OEL5dpqa-PQxuMFKOKxzQGcLf'
 export_file_name_NN = 'export_NN.pkl'
 export_file_name_XGB = 'export_XGB.pkl'
-nn_path = str(path[0]) + '/' + export_file_name_NN
-XGB_path = str(path[0]) + '/' + export_file_name_XGB
+nn_path = str(path) + '/' + export_file_name_NN
+XGB_path = str(path) + '/' + export_file_name_XGB
+print(XGB_path)
 print("XGB Version: "), print(xgb.__version__)
 print("FastAI Version: "), print("2.0.12") #Sept 16th 2020
 
