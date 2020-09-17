@@ -30,7 +30,7 @@ from google_drive_downloader import GoogleDriveDownloader as gdd
 #classes = ['0','1','2','3','4','5','6','7','8','9','10','11'] # NN only
 path = Path(__file__).parent
 #path = !pwd # Colab
-print("Current path: "),print(path[0])
+print("Current path: "),print(path)
 export_file_url_NN = '1l66IevjsxMf3ONlgcxZJBTe9Rd6DPGm5'
 export_file_url_xGB = '1-5nhr65OEL5dpqa-PQxuMFKOKxzQGcLf'
 export_file_name_NN = 'export_NN.pkl'
