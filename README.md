@@ -1,5 +1,4 @@
 FastAPI Template 001
-Mark Dutton
 
 
 To run (with docker)
