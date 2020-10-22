@@ -1,5 +1,5 @@
 fastapi
-fastai
+fastai==2.0.12
 pydantic
 #numpy==1.14.3
 pip
